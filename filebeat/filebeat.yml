@@ -4,15 +4,21 @@ filebeat.inputs:
   - type: log
     enabled: true
     paths:
-      - /var/log/*.log
+      - /var/log/trace-log-collector/*.log
 
     fields:
-      host: 192.168.1.191
       log_topic: my-replicated-topic
-
+      #这里必须是正则\. 否则不监控任何文件
+      #提示如下信息是正常
+      #2019-03-06T14:33:26.128+0800	INFO	log/harvester.go:255	Harvester started for file: /var/log/trace-log-collector/boss_info.log
+      #2019-03-06T14:33:26.128+0800	INFO	log/harvester.go:255	Harvester started for file: /var/log/trace-log-collector/boss_error.log
+      #ctrl+c 停掉后，能ps 出进程，但该进程已经不工作了
+      #不允许双引号
+    exclude_files: ['trace\.log','stdout\.log']
+    include_lines: ['\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}']
     multiline:
-      pattern: ^\[
-      negate: false
+      pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}'
+      negate: true
       match: after
       max_lines: 500
       timeout: 5s
@@ -25,23 +31,22 @@ filebeat.inputs:
     max_backoff: 10s
     backoff_factor: 2
 
-
-#processors:            #这个地方需要注意，此配置是将日志输出格式过滤掉，一般情况下，一些无用的日志字段我们可以删除，只看关键性的信息
+#processors:
 #  - drop_fields:
-#      fields: ["beat", "input_type", "source", "offset"]
-name: "127.0.0.1"         #设置filebeat收集日志中对应的主机名称，，如果设置为空，这使用该机器的主机名称，这里这是本地IP，便于区分多台主机的日志信息
+#      fields: ["beat", "input", "source", "offset","prospector","log","timestamp","@metadata"]
+
+#name: "host-name and can modify"
 
 #----------------------------- kafka output --------------------------------
 output.kafka:
   enabled: true
   hosts: ["192.168.1.196:9092", "192.168.1.197:9092", "192.168.1.198:9092"]
-  topic: '%{[fields][log_topic]}'    #指定要发送数据到kafka集群的哪个topic，与上述的"fields: log_topic："相对应，这是6.x的配置
+  topic: '%{[fields][log_topic]}'
   partition.round_robin:
     reachable_only: true
   worker: 2
   required_acks: 1
   compression: gzip
-  max_message_bytes: 10000000
-
-
-
+  max_message_bytes: 1000000
+  codec.format:
+    string: '%{[source]} %{[host.name]} %{[message]}'

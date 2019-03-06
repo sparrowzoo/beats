@@ -1,0 +1,25 @@
+max_procs: 1
+filebeat.prospectors:
+  - type: log
+    enabled: true
+    paths:
+      - /data/logs/trace/trace*.log
+    tail_files: true
+    encoding: utf-8
+    document_type: trace-model
+
+output.kafka:
+  enabled: true
+  hosts: ["172.18.1.138:9092","172.18.37.71:9092","172.18.2.5:9092"]
+  topic: "trace-model"
+  partition.hash:
+  reachable_only: true
+  codec.format:
+  string: '%{[message]}'
+  compression: gzip
+  max_message_bytes: 1000000
+  required_acks: 1
+  logging.to_files: true
+
+
+
