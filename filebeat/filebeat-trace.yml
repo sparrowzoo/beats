@@ -4,10 +4,11 @@ filebeat.inputs:
   - type: log
     enabled: true
     paths:
-      - /var/log/trace-log-collector/*.log
+      - /data/logs/trace/trace*.log
 
+    tail_files: true
     fields:
-      log_topic: my-replicated-topic
+      log_topic: trace-model
       #这里必须是正则\. 否则不监控任何文件
       #提示如下信息是正常
       #2019-03-06T14:33:26.128+0800	INFO	log/harvester.go:255	Harvester started for file: /var/log/trace-log-collector/boss_info.log
@@ -17,7 +18,7 @@ filebeat.inputs:
     exclude_files: ['trace\.log','stdout\.log']
     include_lines: ['\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}']
     multiline:
-      pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}' #必须^以^开头的行
+      pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}'
       negate: true
       match: after
       max_lines: 500
@@ -40,7 +41,7 @@ filebeat.inputs:
 #----------------------------- kafka output --------------------------------
 output.kafka:
   enabled: true
-  hosts: ["192.168.1.196:9092", "192.168.1.197:9092", "192.168.1.198:9092"]
+  hosts: ["172.18.1.138:9092","172.18.37.71:9092","172.18.2.5:9092"]
   topic: '%{[fields][log_topic]}'
   partition.round_robin:
     reachable_only: true
@@ -49,4 +50,4 @@ output.kafka:
   compression: gzip
   max_message_bytes: 1000000
   codec.format:
-    string: '%{[source]} %{[host.name]} %{[message]}'
+    string: '%{[message]}'
